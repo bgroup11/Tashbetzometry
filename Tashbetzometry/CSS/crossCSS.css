@@ -1,0 +1,87 @@
+﻿
+#crossword {
+    text-align: center;
+}
+
+body {
+    direction: rtl;
+    font-family: Tahoma, Courier, monospace;
+    font-size: 12px;
+}
+
+.crossword {
+    border-collapse: collapse;
+    font-family: Tahoma, Courier, monospace;
+    margin-left: auto;
+    margin-right: auto;
+    clear: both;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+    .crossword td {
+        border: 1px solid black;
+        padding: 0;
+        margin: 0;
+        vertical-align: middle;
+        padding: 0;
+        text-align: center;
+        width: 30px;
+        height: 30px;
+    }
+
+    .crossword .no-border {
+        border: none;
+    }
+
+#clues {
+    margin: auto;
+}
+
+    #clues td {
+        vertical-align: top;
+    }
+
+.linkable {
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.strikeout {
+    position: relative;
+   
+}
+
+    .strikeout::after {
+        border-bottom: 0.250em solid blue;
+        content: "";
+        left: 0;
+        margin-top: calc(0.125em / 2 * -1);
+        position: absolute;
+        right: 0;
+        top: 50%;
+        
+    }
+
+.red-strikeout {
+    position: relative;
+}
+
+    .red-strikeout::after {
+        border-bottom: 0.250em solid red;
+        content: "";
+        left: 0;
+        margin-top: calc(0.250em / 2 * -1);
+        position: absolute;
+        right: 0;
+        top: 50%;
+    }
+
+.backtd{
+    background-color:lightgrey;
+}

@@ -1,0 +1,301 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <script src="../Scripts/ajaxcall.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Crossword</title>
+    <link href="../CSS/crossCSS.css" rel="stylesheet" />
+    <script src="../Crossword-Generator-master/crossword.js"></script>
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+
+            $("#clues").hide();
+            //GetWordsFromDB();
+            $('#answer-form').hide();
+            GetUserFromDB();
+            //PostUser();
+            //$('#cancel-button').click(closesolvefunction);
+            //$('#answer-button').click(answerfunction);
+            //$('#reveal-answer-button').click(revealanswerfunction);
+
+        });
+
+
+        // הבאת 30 מילים מוגרלות בצורת Words
+        //הפעלת הפונקציה getData
+        //הפעלת הפונקציה GetLevelFromDB
+        var keys = [];
+        var words = [];
+        var clues = [];
+        var pointer = 0;
+        function GetWordsFromDB() {
+
+            ajaxCall("GET", "../api/Words", "", GetAPSuccessCB, GetAPErrorCB);
+        }
+        function GetAPSuccessCB(data) {
+
+            for (var i = 0; i < data.length; i++) {
+                keys[pointer] = data[i].Key;
+                words[pointer] = data[i].Word;
+                clues[pointer] = data[i].Clue;
+                pointer++;
+            }
+            //המילים שהוגרלו רנדומלית
+            console.log("KeysRandom:", keys);
+            console.log("WordsRandom:", words);
+            console.log("CluesRandom:", clues);
+
+            // הבאת מילים קשות לפי רמות קושי
+            GetLevelFromDB();
+        }
+        function GetAPErrorCB(err) {
+            console.log("Error GetWords=", err);
+        }
+
+
+        //הבאת רשימת המילים המלאה בצורתה המקורית
+        //יצירת Grid
+        //הפעלת הפונקציה CountWordInCross
+        //הכנסת הגריד ל-HTML
+        var grid;
+        function GetAllDataFromDB() {
+            ajaxCall("GET", "../api/Words/GetData", "", GetdataSuccesses, GetdataError);
+        }
+        function GetdataSuccesses(data) {
+            console.log("Data:", data);
+
+            // Create crossword object with the words and clues
+            var cw = new Crossword(keys, words, clues, data);
+
+            // create the crossword grid (try to make it have a 1:1 width to height ratio in 10 tries)
+            var tries = 20;
+            grid = cw.getSquareGrid(tries);
+
+            //כל המילים בתשבץ
+            console.log("KeysAll:", keys);
+            console.log("WordsAll:", words);
+            console.log("CluesAll:", clues);
+
+            //אם התשחץ לא הצליח להכניס מילה כלשהי
+            //הגרל מילים חדשות מהדאטה
+            if (grid == null || grid == undefined) {
+                $("#crossword").hide();
+                location.reload(); // לא מתקבל בריאקט
+            } else {
+
+                //מונה את מספר הפעמים שמילה מופיעה בכלל התשחצים
+                CountWordInCross();
+
+                //מונה את מספר הפעמים שמילה מופיעה לכל משתמש
+                CountWordForUser();
+
+                // turn the crossword grid into HTML
+                var show_answers = true;
+                document.getElementById("crossword").innerHTML = CrosswordUtils.toHtml(grid, show_answers);
+
+                // make a nice legend for the clues
+                var legend = cw.getLegend(grid);
+                $("#clues").show();
+                for (var k in legend) {
+
+                    var html = [];
+                    for (var i = 0; i < legend[k].length; i++) {
+                        //html.push("<li><strong>" + legend[k][i]['position'] + ".</strong> " + legend[k][i]['clue'] + "</li>");
+                        var element = "";
+                        element += '<li ';
+                        element += 'data-word="' + legend[k][i]['word'].replace(/"/g, '&quot;') + '" ';
+                        element += 'data-clue="' + legend[k][i]['clue'].replace(/"/g, '&quot;') + '" ';
+                        element += 'data-x="' + legend[k][i]['x'] + '" ';
+                        element += 'data-y="' + legend[k][i]['y'] + '" ';
+                        element += 'data-across="' + k + '" ';
+                        element += 'class="word-clue clickable" ';
+                        element += '>';
+                        element += legend[k][i]['position'] + ' : ';
+                        element += '<span id="';
+                        element += legend[k][i]['word'] + '-listing';
+                        element += '" ';
+                        element += 'class="linkable">';
+                        element += legend[k][i]['clue'];
+                        element += '</span>';
+                        element += '</li>';
+                        html.push(element);
+                        //html.push("<liclass='linkable clickable word-clue'><strong>" + legend[k][i]['position'] + ".</strong> " + legend[k][i]['clue'] + "</li>");
+                    }
+                    document.getElementById(k).innerHTML = html.join("\n");
+                }
+                showCrossWordOptions();
+            }
+        }
+        function GetdataError(err) {
+            console.log("Error GetData=", err);
+        }
+
+        //הבאת הדאטה לפי רמות קושי
+        function GetLevelFromDB() {
+            var level = localStorage.getItem("level");
+            ajaxCall("GET", "../api/Level/{" + level + "}", "", GetLevelSuccessCB, GetLevelErrorCB);
+        }
+        function GetLevelSuccessCB(dataLevel) {
+            console.log("levelData:", dataLevel);
+
+            var alredy = false;
+
+            for (var i = 0; i < dataLevel.length; i++) {
+                for (var j = 0; j < keys.length; j++) {
+                    if (dataLevel[i].KeyWord == keys[j]) {
+                        alredy = true;
+                    }
+                }
+                if (alredy) {
+                    break;
+                }
+                else {               
+                    keys[pointer] = dataLevel[i].KeyWord;
+                    clues[pointer] = dataLevel[i].Solution;
+                    words[pointer] = dataLevel[i].Word;
+                    pointer++;
+                }
+            }
+            //הבאת מילים קשות לפי רמת המשתמש
+            GetUserLevelFromDB();
+        }
+        function GetLevelErrorCB(err) {
+            console.log("Error GetLevelFromDB:", err);
+        }
+
+        //הבאת הדאטה לפי רמת קושי המשתמש
+        function GetUserLevelFromDB() {
+            ajaxCall("Get", "../api/WordForUser/nitzan@gmail.com/Level", "", GetUserLevelSuccessCB, GetUserLevelErrorCB);
+        }
+        function GetUserLevelSuccessCB(dataUserLevel) {
+            console.log("UserLevel:", dataUserLevel);
+
+            var alredy = false;
+
+            for (var i = 0; i < dataUserLevel.length; i++) {
+                for (var j = 0; j < keys.length; j++) {
+                    if (dataUserLevel[i].KeyWord == keys[j]) {
+                        alredy = true;
+                    }
+                }
+                if (alredy) {
+                    break;
+                }
+                else {
+                    keys[pointer] = dataUserLevel[i].KeyWord;
+                    clues[pointer] = dataUserLevel[i].Solution;
+                    words[pointer] = dataUserLevel[i].Word;
+                    pointer++;
+                }
+            }
+
+            //הבאת כל המילים מהדאטה
+            GetAllDataFromDB();
+        }
+        function GetUserLevelErrorCB(err) {
+            console.log("Error GetUserLevel:", err);
+        }
+
+
+        //כשתשבץ מוגרל-מעדכן את מספר ההופעות של כל מילה בכלל התשבצים
+        function CountWordInCross() {
+
+            var wordInCross = {
+                KeysArr: keys,
+                wordsArr: words,
+                cluesArr: clues,
+            }
+            ajaxCall("PUT", "../api/Words", JSON.stringify(wordInCross), postSuccessWICCB, postErrorWICCB);
+        }
+        function postSuccessWICCB(data) {
+            console.log("CountWordInCross Succsses!", data);
+        }
+        function postErrorWICCB(err) {
+            console.log("Error CountWordInCross=", err);
+        }
+
+
+        //כשתשבץ מוגרל-מעדכן את מספר ההופעות של כל מילה לכל משתמש
+        function CountWordForUser() {
+
+            var wordForUser = {
+                UserMail: 'nitzan@gmail.com',
+                KeysArr: keys,
+            }
+            ajaxCall("POST", "../api/WordForUser", JSON.stringify(wordForUser), PostWFUSuccess, PostWFUError);
+        }
+        function PostWFUSuccess(data) {
+            console.log("CountWordForUser Succsses!", data);
+        }
+        function PostWFUError(err) {
+            console.log("Error CountWordForUser:", err);
+        }
+
+
+        //הבאת כל הפרטים של המשתמש לאימות כניסה
+        function GetUserFromDB() {
+            ajaxCall("Get", "../api/User/nitzan@gmail.com/ni123", "", GetUserSuccess, GetUserError);
+        }
+        function GetUserSuccess(data) {
+            console.log("UserDetails:", data);
+        }
+        function GetUserError(err) {
+            console.log("Error GetUser:", err);
+        }
+
+
+        //יצירת משתמש חדש
+        function PostUser() {
+            var user = {
+                FirstName: 'rotem',
+                LastName: 'abeccassis',
+                Mail: 'rotem@gmail.com',
+                UserName: 'rot',
+                Password: 'rot123'
+            }
+            ajaxCall("POST", "../api/User", JSON.stringify(user), PostSuccessCB, PostErrorCB)
+        }
+        function PostSuccessCB(data) {
+            console.log("PostUser Succsses!", data);
+        }
+        function PostErrorCB(err) {
+            console.log("Error PostUser:", err);
+        }
+
+
+    </script>
+</head>
+<body>
+    <h1 style="text-align:center">תשבצומטרי</h1></br>
+    <div id="crossword"></div>
+    <table id="clues">
+        <thead>
+            <tr>
+                <th>מאוזן</th>
+                <th>מאונך</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><ul id="across"></ul></td>
+                <td><ul id="down"></ul></td>
+            </tr>
+        </tbody>
+    </table>
+    <div id="answer-form">
+        <div class="short-margin">
+
+            <p id="position-and-clue"></p>
+
+            <p>הזן תשובה:<input id="solution-answer" type="text" size="40" /></p>
+
+            <p id="answer-results" class="hidden"></p>
+
+            <p><input type="button" id="cancel-button" value="ביטול" /> <input type="button" id="answer-button" value="בדוק תשובה" /> <input type="button" id="reveal-answer-button" value="רמז" /></p>
+
+        </div>
+    </div>
+</body>
+</html>

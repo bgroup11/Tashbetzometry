@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <script src="../Scripts/ajaxcall.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link href="../CSS/crossCSS.css" rel="stylesheet" />
+    <meta charset="utf-8" />
+    <title></title>
+    <style>
+        body {
+            text-align: center;
+            direction: rtl;
+        }
+    </style>
+    <script>
+
+        function getcross(value) {
+            localStorage.setItem("level", value);
+            window.location.replace("./Crossword.html");
+        }
+
+    </script>
+</head>
+<body>
+    <h1 style="text-align:center">תשבצומטרי</h1></br>
+    <img src="../Crossword-Generator-master/numbers/crosswordimg.jpg" />
+    <h3>התחל משחק:</h3>
+    <h4>בחר רמת קושי</h4>
+    <button id="easy" onclick="getcross(this.id)"> קל </button>
+    <button id="medium" onclick="getcross(this.id)"> בינוני </button>
+    <button id="hard" onclick="getcross(this.id)"> קשה </button>
+
+</body>
+</html>
